@@ -1,0 +1,27 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+
+- script: |
+    pip install codeql
+    codeql database create my-codeql-database --language=<language> --source-root=.
+  displayName: 'Setup CodeQL Database'
+
+- script: |
+    codeql database analyze my-codeql-database <path-to-your-ql-file> --format=sarifv2.1.0 --output=results.sarif
+  displayName: 'Run CodeQL Analysis'
+
+- publish: results.sarif
+  artifact: 'CodeQL-Report'
