@@ -1,0 +1,43 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest' # Puedes cambiar a 'macos-latest' si lo prefieres
+
+steps:
+# 1. Instala Java JDK
+- task: UseJavaVersion@1
+  inputs:
+    versionSpec: '11'
+    jdkArchitectureOption: 'x64'
+  displayName: 'Configurar JDK 11 para Android'
+
+# 2. Instala el SDK de Android
+- script: |
+    # Crea directorios para Android SDK y establece variables de entorno
+    mkdir -p $HOME/android-sdk
+    export ANDROID_SDK_ROOT=$HOME/android-sdk
+    export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+    # Descarga las herramientas de línea de comandos de Android SDK
+    curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
+    unzip commandlinetools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+    mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+    rm commandlinetools.zip
+
+    # Acepta las licencias y configura el SDK de Android
+    yes | sdkmanager --licenses
+    sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools"
+
+  displayName: 'Instalar Android SDK y herramientas de compilación'
+
+# 3. Compila el proyecto y genera el APK
+- task: Gradle@2
+  inputs:
+    workingDirectory: ''
+    gradleWrapperFile: 'gradlew'
+    gradleOptions: '-Xmx3072m'
+    tasks: 'assembleDebug'
+  displayName: 'Compilar APK en modo Debug'
